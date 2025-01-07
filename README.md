@@ -4,7 +4,7 @@
 
 **数独** 是一款经典的逻辑游戏，通过填写数字使每一行、每一列和每一个 3x3 宫格内的数字均不重复。本项目使用现代前端技术实现，支持多种难度选择和动态效果，提供流畅的游戏体验。
 
-🌐 **项目地址**: [https://github.com/your-username/sudoku](https://github.com/yviscool/sudoku)
+🌐 **项目地址**: [https://github.com/yviscool/Sudoku](https://github.com/yviscool/Sudoku)
 
 ---
 
@@ -27,11 +27,11 @@
 ### 本地运行
 1. 克隆项目到本地：
    ```bash
-   git clone https://github.com/yviscool/sudoku.git
+   git clone https://github.com/yviscool/Sudoku.git
    ```
 2. 进入项目目录：
    ```bash
-   cd sudoku
+   cd Sudoku
    ```
 3. 打开 `index.html` 文件即可运行。
 
