@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="https://thesudoku.com/favicon.ico" type="image/x-icon" sizes="32x32">
+    <title>数独游戏</title>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: "Press Start 2P", sans-serif;
+            background: #111;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 标题区域 */
+        #title {
+            font-size: 36px;
+            margin-bottom: 20px;
+            font-family: "Poppins", sans-serif;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0px 4px 10px rgba(0, 255, 255, 0.7);
+            letter-spacing: 2px;
+        }
+
+        /* 主容器 */
+        .main-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            /* 顶部对齐 */
+        }
+
+        /* 左侧游戏区域 */
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 右侧控制区域 */
+        .control-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        /* 数独棋盘 */
+        #sudoku {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 0;
+            border: 2px solid #00ccff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.2s, outline 0.2s;
+            user-select: none;
+            /* 禁止用户选中文本 */
+        }
+
+        /* 3x3 小棋盘分割线 */
+        .cell:nth-child(3n) {
+            border-right: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        .cell:nth-child(9n) {
+            border-right: none;
+        }
+
+        .cell:nth-child(n + 19):nth-child(-n + 27),
+        .cell:nth-child(n + 46):nth-child(-n + 54) {
+            border-bottom: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        .cell.fixed {
+            color: #00ccff;
+            /* 初始数字颜色 */
+            cursor: default;
+        }
+
+        .cell.user-filled {
+            color: #ffcc00;
+            /* 用户填写的数字颜色 */
+        }
+
+        /* 高亮效果使用 outline */
+        .cell.highlight1 {
+            outline: 2px solid #ffcc00;
+            outline-offset: -2px;
+        }
+
+        .cell.highlight2 {
+            background: rgba(0, 153, 255, 0.2);
+        }
+
+        .cell.highlight3 {
+            background: #b3e5e1e0;
+        }
+
+        .cell.highlight4 {
+            color: red;
+        }
+
+        .cell.highlight-conflict {
+            background: #dc3741e0;
+        }
+
+        /* 数字键盘 */
+        .number-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            position: relative;
+        }
+
+        .number-pad button {
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #0066ff, #00ccff);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .number-pad button:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 8px 12px rgba(0, 255, 255, 0.5);
+        }
+
+        .number-pad button .missing-count {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 12px;
+            color: #ffcc00;
+        }
+
+        /* 重置按钮 */
+        #reset-button {
+            background: linear-gradient(135deg, #ff0099, #ff66cc);
+            border: none;
+            padding: 10px 20px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        #reset-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 8px 12px rgba(255, 0, 153, 0.5);
+        }
+
+        /* 操作按钮 */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-buttons button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-buttons button svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 4;
+            transition: stroke 0.2s;
+        }
+
+        .action-buttons button:hover svg {
+            stroke: #00ccff;
+        }
+
+        /* 难度选择器 */
+        #difficulty-select {
+            background: linear-gradient(135deg, #44cc44, #88ff88);
+            border: none;
+            padding: 10px 20px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+
+        #difficulty-select option {
+            background: #111;
+            color: #fff;
+        }
+
+        #difficulty-select:hover {
+            transform: scale(1.05);
+            box-shadow: 0px 8px 12px rgba(0, 255, 153, 0.5);
+        }
+
+        /* 烟花效果 */
+        #fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2.11.1/tsparticles.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body>
+    <h1 id="title">数独游戏</h1>
+    <div class="main-container">
+        <div class="game-area">
+            <div id="sudoku"></div>
+        </div>
+        <div class="control-area">
+            <select id="difficulty-select">
+                <option value="easy">初级</option>
+                <option value="medium">中级</option>
+                <option value="hard">高级</option>
+            </select>
+            <button id="reset-button">重置游戏</button>
+            <p id="timer">计时: 0s</p>
+            <div class="number-pad">
+                <button data-number="1">1<span class="missing-count"></span></button>
+                <button data-number="2">2<span class="missing-count"></span></button>
+                <button data-number="3">3<span class="missing-count"></span></button>
+                <button data-number="4">4<span class="missing-count"></span></button>
+                <button data-number="5">5<span class="missing-count"></span></button>
+                <button data-number="6">6<span class="missing-count"></span></button>
+                <button data-number="7">7<span class="missing-count"></span></button>
+                <button data-number="8">8<span class="missing-count"></span></button>
+                <button data-number="9">9<span class="missing-count"></span></button>
+            </div>
+            <div class="action-buttons">
+                <button id="undo-button">
+                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                            d="M44 40.8361C39.1069 34.8632 34.7617 31.4739 30.9644 30.6682C27.1671 29.8625 23.5517 29.7408 20.1182 30.303V41L4 23.5453L20.1182 7V17.167C26.4667 17.2172 31.8638 19.4948 36.3095 24C40.7553 28.5052 43.3187 34.1172 44 40.8361Z" />
+                    </svg>
+                </button>
+                <button id="erase-button">
+                    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 42H44" />
+                        <path d="M31 4L7 28L13 34H21L41 14L31 4Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    <canvas id="fireworks"></canvas>
+
+    <script>
+        class SudokuGame {
+            constructor() {
+                this.board = []; // 数独棋盘
+                this.solution = []; // 数独答案
+                this.initialBoard = []; // 初始棋盘状态
+                this.seconds = 0; // 计时器
+                this.timer = null; // 计时器对象
+                this.selectedCell = null; // 当前选中的格子
+                this.history = []; // 操作历史
+                this.difficulty = 'easy'; // 默认难度
+                this.init();
+            }
+
+            // 初始化游戏
+            init() {
+                this.generateBoard();
+                this.renderBoard();
+                this.startTimer();
+                this.updateMissingCounts();
+
+                // 绑定事件
+                document.getElementById("reset-button").addEventListener("click", () => this.resetGame());
+                document.querySelectorAll(".number-pad button").forEach(button => {
+                    button.addEventListener("click", () => this.fillSelectedCell(button.dataset.number));
+                });
+                document.getElementById("undo-button").addEventListener("click", () => this.undo());
+                document.getElementById("erase-button").addEventListener("click", () => this.erase());
+                document.getElementById("difficulty-select").addEventListener("change", (event) => {
+                    this.difficulty = event.target.value;
+                    this.resetGame();
+                });
+            }
+
+            // 生成数独棋盘
+            generateBoard() {
+                this.solution = this.generateSolution();
+                this.board = this.solution.map(row => [...row]);
+                this.initialBoard = this.board.map(row => [...row]); // 保存初始状态
+                this.digHoles(this.getHoleCount());
+            }
+
+            // 根据难度获取挖空数量
+            getHoleCount() {
+                switch (this.difficulty) {
+                    case 'easy':
+                        return 45 + Math.floor(Math.random() * 6); // 45-50
+                    case 'medium':
+                        return 50 + Math.floor(Math.random() * 6); // 50-55
+                    case 'hard':
+                        return 55 + Math.floor(Math.random() * 11); // 55-65
+                    default:
+                        return 45;
+                }
+            }
+
+            // 挖空部分格子
+            digHoles(holes) {
+                for (let i = 0; i < holes; i++) {
+                    const row = Math.floor(Math.random() * 9);
+                    const col = Math.floor(Math.random() * 9);
+                    if (this.board[row][col] !== 0) {
+                        this.board[row][col] = 0;
+                        this.initialBoard[row][col] = 0; // 同步更新初始状态
+                    } else {
+                        i--;
+                    }
+                }
+            }
+
+            // 生成数独答案
+            generateSolution() {
+                const grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+                this.solveSudoku(grid);
+                return grid;
+            }
+
+            // 解数独（递归回溯算法）
+            solveSudoku(grid) {
+                const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        if (grid[row][col] === 0) {
+                            numbers.sort(() => Math.random() - 0.5); // 随机打乱数字顺序
+                            for (let num of numbers) {
+                                if (this.isValid(grid, row, col, num)) {
+                                    grid[row][col] = num;
+                                    if (this.solveSudoku(grid)) {
+                                        return true;
+                                    }
+                                    grid[row][col] = 0;
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // 检查数字是否有效
+            isValid(grid, row, col, num) {
+                for (let i = 0; i < 9; i++) {
+                    if (grid[row][i] === num || grid[i][col] === num) {
+                        return false;
+                    }
+                }
+                const startRow = Math.floor(row / 3) * 3;
+                const startCol = Math.floor(col / 3) * 3;
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                        if (grid[startRow + i][startCol + j] === num) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // 渲染数独棋盘
+            renderBoard() {
+                const sudoku = document.getElementById("sudoku");
+                sudoku.innerHTML = "";
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        const cell = document.createElement("div");
+                        cell.className = "cell";
+                        if (this.board[row][col] !== 0) {
+                            cell.innerText = this.board[row][col];
+                            if (this.initialBoard[row][col] !== 0) {
+                                cell.classList.add("fixed"); // 初始数字
+                            } else {
+                                cell.classList.add("user-filled"); // 用户填写的数字
+                            }
+                        }
+                        cell.addEventListener("click", () => this.selectCell(row, col));
+                        sudoku.appendChild(cell);
+                    }
+                }
+                this.updateMissingCounts();
+            }
+
+            // 更新缺失数字数量
+            updateMissingCounts() {
+                const counts = Array(10).fill(0);
+                for (let num = 1; num <= 9; num++) {
+                    let count = 0;
+                    for (let row = 0; row < 9; row++) {
+                        for (let col = 0; col < 9; col++) {
+                            if (this.board[row][col] === num) {
+                                count++;
+                            }
+                        }
+                    }
+                    counts[num] = 9 - count; // 每个数字最多 9 个
+                }
+                document.querySelectorAll(".number-pad button").forEach(button => {
+                    const num = parseInt(button.dataset.number, 10);
+                    button.querySelector(".missing-count").textContent = counts[num] || "";
+                });
+            }
+
+            // 选中格子
+            selectCell(row, col) {
+                this.clearHighlights();
+                this.selectedCell = { row, col };
+                const cell = document.querySelector(`#sudoku div:nth-child(${row * 9 + col + 1})`);
+                cell.classList.add("highlight1");
+                this.highlightArea(row, col);
+                if (this.board[row][col] !== 0) {
+                    this.highlightSameNumbers(this.board[row][col]);
+                }
+            }
+
+            // 清除所有高亮
+            clearHighlights() {
+                document.querySelectorAll(".cell").forEach(cell => {
+                    cell.classList.remove("highlight1", "highlight2", "highlight3", "highlight4", "highlight-conflict");
+                });
+            }
+
+            // 高亮3x3区域和同行同列
+            highlightArea(row, col) {
+                const startRow = Math.floor(row / 3) * 3;
+                const startCol = Math.floor(col / 3) * 3;
+                for (let i = 0; i < 9; i++) {
+                    for (let j = 0; j < 9; j++) {
+                        if (i === row || j === col || (i >= startRow && i < startRow + 3 && j >= startCol && j < startCol + 3)) {
+                            const cell = document.querySelector(`#sudoku div:nth-child(${i * 9 + j + 1})`);
+                            cell.classList.add("highlight2");
+                        }
+                    }
+                }
+            }
+
+            // 高亮相同数字
+            highlightSameNumbers(number) {
+                for (let i = 0; i < 9; i++) {
+                    for (let j = 0; j < 9; j++) {
+                        if (this.board[i][j] === number) {
+                            const cell = document.querySelector(`#sudoku div:nth-child(${i * 9 + j + 1})`);
+                            cell.classList.add("highlight3");
+                        }
+                    }
+                }
+            }
+
+            // 填充选中的格子
+            fillSelectedCell(number) {
+                // 清除高亮
+                this.clearHighlights();
+
+                if (this.selectedCell) {
+                    const { row, col } = this.selectedCell;
+                    if (this.board[row][col] === 0) {
+                        this.history.push({ row, col, value: this.board[row][col] });
+                        this.board[row][col] = parseInt(number, 10);
+                        this.renderBoard();
+                        this.checkConflict(row, col);
+                        if (this.checkWin()) {
+                            this.showWin();
+                        }
+                    }
+                }
+                // 高亮大棋盘上的对应数字
+                this.highlightSameNumbers(parseInt(number, 10));
+            }
+
+            // 检查冲突
+            checkConflict(row, col) {
+                const number = this.board[row][col];
+                let hasConflict = false;
+                for (let i = 0; i < 9; i++) {
+                    for (let j = 0; j < 9; j++) {
+                        if ((i === row || j === col ||
+                            (Math.floor(i / 3) === Math.floor(row / 3) &&
+                                Math.floor(j / 3) === Math.floor(col / 3))) &&
+                            this.board[i][j] === number &&
+                            !(i === row && j === col)) {
+                            hasConflict = true;
+                            const conflictCell = document.querySelector(`#sudoku div:nth-child(${i * 9 + j + 1})`);
+                            conflictCell.classList.add("highlight-conflict");
+                            const selectedCell = document.querySelector(`#sudoku div:nth-child(${row * 9 + col + 1})`);
+                            selectedCell.classList.add("highlight4");
+                        }
+                    }
+                }
+                if (hasConflict) {
+                    setTimeout(() => {
+                        this.clearHighlights();
+                        if (this.board[row][col] === number) {
+                            this.board[row][col] = 0;
+                            this.renderBoard();
+                        }
+                    }, 1500);
+                }
+            }
+
+            // 检查是否完成
+            checkWin() {
+                for (let row = 0; row < 9; row++) {
+                    for (let col = 0; col < 9; col++) {
+                        if (this.board[row][col] !== this.solution[row][col]) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            // 显示胜利提示
+            showWin() {
+                clearInterval(this.timer);
+                Swal.fire({
+                    title: "恭喜！",
+                    text: `你用 ${this.seconds} 秒完成数独！`,
+                    icon: "success",
+                    confirmButtonText: "再来一局",
+                    background: "#1e1e1e",
+                    color: "#fff",
+                    confirmButtonColor: "#00ccff",
+                    customClass: {
+                        popup: "sweet-popup",
+                        title: "sweet-title",
+                        confirmButton: "sweet-confirm-button",
+                    },
+                    showCloseButton: true,
+                    focusConfirm: false,
+                    backdrop: "rgba(0, 0, 0, 0.7)",
+                    padding: "2rem",
+                    borderRadius: "10px",
+                    boxShadow: "0px 0px 20px rgba(0, 255, 255, 0.5)",
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.resetGame();
+                    }
+                });
+                this.showFireworks();
+            }
+
+            // 重置游戏
+            resetGame() {
+                clearInterval(this.timer);
+                this.seconds = 0;
+                document.getElementById("timer").innerText = `计时: ${this.seconds}s`;
+                this.generateBoard();
+                this.renderBoard();
+                this.startTimer();
+            }
+
+            // 启动计时器
+            startTimer() {
+                this.timer = setInterval(() => {
+                    this.seconds++;
+                    document.getElementById("timer").innerText = `计时: ${this.seconds}s`;
+                }, 1000);
+            }
+
+            // 显示烟花效果
+            showFireworks() {
+                tsParticles.load({
+                    id: "tsparticles",
+                    options: {
+                        fullScreen: {
+                            zIndex: 1,
+                        },
+                        particles: {
+                            number: {
+                                value: 0,
+                            },
+                            color: {
+                                value: ["#00FFFC", "#FC00FF", "#fffc00"],
+                            },
+                            shape: {
+                                type: ["circle", "square"],
+                                options: {},
+                            },
+                            opacity: {
+                                value: {
+                                    min: 0,
+                                    max: 1,
+                                },
+                                animation: {
+                                    enable: true,
+                                    speed: 2,
+                                    startValue: "max",
+                                    destroy: "min",
+                                },
+                            },
+                            size: {
+                                value: {
+                                    min: 2,
+                                    max: 4,
+                                },
+                            },
+                            links: {
+                                enable: false,
+                            },
+                            life: {
+                                duration: {
+                                    sync: true,
+                                    value: 5,
+                                },
+                                count: 1,
+                            },
+                            move: {
+                                enable: true,
+                                gravity: {
+                                    enable: true,
+                                    acceleration: 10,
+                                },
+                                speed: {
+                                    min: 10,
+                                    max: 20,
+                                },
+                                decay: 0.1,
+                                direction: "none",
+                                straight: false,
+                                outModes: {
+                                    default: "destroy",
+                                    top: "none",
+                                },
+                            },
+                            rotate: {
+                                value: {
+                                    min: 0,
+                                    max: 360,
+                                },
+                                direction: "random",
+                                move: true,
+                                animation: {
+                                    enable: true,
+                                    speed: 60,
+                                },
+                            },
+                            tilt: {
+                                direction: "random",
+                                enable: true,
+                                move: true,
+                                value: {
+                                    min: 0,
+                                    max: 360,
+                                },
+                                animation: {
+                                    enable: true,
+                                    speed: 60,
+                                },
+                            },
+                            roll: {
+                                darken: {
+                                    enable: true,
+                                    value: 25,
+                                },
+                                enable: true,
+                                speed: {
+                                    min: 15,
+                                    max: 25,
+                                },
+                            },
+                            wobble: {
+                                distance: 30,
+                                enable: true,
+                                move: true,
+                                speed: {
+                                    min: -15,
+                                    max: 15,
+                                },
+                            },
+                        },
+                        emitters: {
+                            life: {
+                                count: 0,
+                                duration: 0.1,
+                                delay: 0.4,
+                            },
+                            rate: {
+                                delay: 0.1,
+                                quantity: 150,
+                            },
+                            size: {
+                                width: 0,
+                                height: 0,
+                            },
+                        },
+                    },
+                });
+                setTimeout(() => {
+                    tsParticles.domItem(0).destroy();
+                }, 6000);
+            }
+
+            // 撤销上一步操作
+            undo() {
+                if (this.history.length > 0) {
+                    const { row, col, value } = this.history.pop();
+                    this.board[row][col] = value;
+                    this.renderBoard();
+                }
+            }
+
+            // 擦除当前选中格子的数字
+            erase() {
+                if (this.selectedCell) {
+                    const { row, col } = this.selectedCell;
+                    if (this.board[row][col] !== 0 && this.initialBoard[row][col] === 0) {
+                        this.history.push({ row, col, value: this.board[row][col] });
+                        this.board[row][col] = 0;
+                        this.renderBoard();
+                    }
+                }
+            }
+        }
+
+        // 初始化游戏
+        const game = new SudokuGame();
+    </script>
+</body>
+
+</html>
