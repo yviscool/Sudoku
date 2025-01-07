@@ -1,7 +1,3 @@
-以下是参照您提供的 `README` 编写的数独游戏的 `README` 文件内容：
-
----
-
 # 数独游戏 - Sudoku
 
 ![GitHub](https://img.shields.io/badge/license-MIT-blue) ![GitHub stars](https://img.shields.io/github/stars/yviscool/Sudoku?style=social)
